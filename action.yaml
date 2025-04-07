@@ -1,0 +1,34 @@
+name: 'Post to OTN Slack'
+description: "Post in #trackydev using a Slack API Application (https://api.slack.com/apps)"
+author: "Mike O'Brien"
+inputs:
+  bot-token:
+    description: "The meat of the Slack Webhook URL"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: "Notify #trackydev of changes"
+      shell: bash
+      if: ${{ github.event_name == "pull_request" && github.event.action == "closed" }}
+      run: |
+        curl -X POST -H 'Content-type: application/json' \
+          --data "{'text':'Changes pushed to ${{ github.repository }}. See them here: ${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}'}" \
+          ${{ inputs.bot-token }}
+          
+    - name: "Notify #trackydev of review"
+      shell: bash
+      if: ${{ github.event_name == "pull_request" && contains(fromJSON('["review_requested", "ready_for_review"]'), github.event.action) }}
+      run: |
+        curl -X POST -H 'Content-type: application/json' \
+          --data "{'text':'Review requested in ${{ github.repository }}. Find changeset here: ${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}'}" \
+          ${{ inputs.bot-token }}
+
+    - name: "Notify #trackydev manually"
+      shell: bash
+      if: ${{ github.event_name == "workflow_dispatch" }}
+      run: |
+        curl -X POST -H 'Content-type: application/json' \
+          --data "{'text':'Manual notification of changes from ${{ github.server_url }}/${{ github.repository }}.'}" \
+          ${{ inputs.bot-token }}
+          
